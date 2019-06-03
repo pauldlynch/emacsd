@@ -1,0 +1,658 @@
+#+STARTUP: overview
+#+TITLE: Org-mode init.el
+#+AUTHOR: Paul Lynch
+#+EMAIL: paul@plsys.co.uk
+#+OPTIONS: toc:t num:nil
+* babel-mode initfile for emacs
+
+We do this (use org and babel) to make navigating and finding things
+in the init file easier.
+
+
+Bits from Mastering Emacs, C'est la Z, Uncle Dave,
+(cestlaz.github.io/stories/emacs), Emacs and org-mode tutorial
+(www.star.bris.ac.uk/bjm/emacs.html) and anywhere else useful.
+
+Important things to know for editing this file:
+
+- <s <TAB> generates a source block.
+- C-c ' opens a major mode buffer for editing (and then closes it).
+- C-c C-c executes the block.
+
+
+Problems that need fixing:
+
+- C-x C-f file list used to be better (no dired buffers, for a start)
+- this should be a github repository for ease of updating.
+
+* Personal info
+
+#+BEGIN_SRC emacs-lisp
+  (setq user-full-name "Paul Lynch"
+        user-mail-address "paul@plsys.co.uk")
+
+#+END_SRC
+
+* Interface tweaks
+
+#+BEGIN_SRC emacs-lisp
+    (print "tweaks")
+    (setq inhibit-startup-message t)
+    (tool-bar-mode -1)
+    (fset 'yes-or-no-p 'y-or-n-p)
+  (global-hl-line-mode t)
+  (size-indication-mode t)
+
+    ;; garbage collection
+    (setq gc-cons-threshold 5000000)
+    (setq large-file-warning-threshold 10000000)
+
+    (set-charset-priority 'unicode)
+    (set-default-coding-systems 'utf-8)
+    (set-terminal-coding-system 'utf-8)
+    (set-keyboard-coding-system 'utf-8)
+    (set-selection-coding-system 'utf-8)
+    (prefer-coding-system 'utf-8)
+    (setq default-process-coding-system '(utf-8-unix . utf-8-unix))
+
+    (line-number-mode 1)
+  (column-number-mode 1)
+  ;;(global-display-line-numbers-mode 1)
+
+  (setq frame-title-format
+        '((:eval (if (buffer-file-name)
+                     (abbreviate-file-name (buffer-file-name))
+                   "%b"))))
+
+  (add-hook 'before-save-hook 'whitespace-cleanup)
+    (add-hook 'text-mode-hook 'turn-on-auto-fill)
+
+    (use-package diminish
+      :ensure t
+      :demand t
+      :diminish abbrev-mode
+      :diminish auto-fill-function
+      :diminish wrap-region-mode
+      :diminish yas/minor-mode)
+
+  (setq scroll-margin 0
+        scroll-conservatively 100000
+        scroll-preserve-screen-position 1)
+
+
+    ;; (setq-default auto-fill-function 'do-auto-fill)
+    (add-hook 'text-mode-hook 'turn-on-auto-fill)
+    (add-hook 'org-mode-hook 'turn-on-auto-fill)
+#+END_SRC
+
+Go full screen
+#+BEGIN_SRC emacs-lisp
+  (setq initial-frame-alist (quote ((fullscreen . maximized))))
+#+END_SRC
+
+* Themes and mode-line
+#+BEGIN_SRC emacs-lisp
+(print "themes")
+  (use-package color-theme
+    :ensure t)
+
+  ;; (use-package zenburn-theme
+  ;;   :ensure t
+  ;;   :config (load-theme 'zenburn t))
+
+  (use-package powerline
+    :ensure t
+    :config)
+
+  (use-package moe-theme
+    :ensure t
+    :config
+    (moe-dark)
+    (powerline-moe-theme)
+    (setq moe-theme-highlight-buffer-id t))
+
+#+END_SRC
+
+* Backups
+#+BEGIN_SRC emacs-lisp
+  (setq backup-directory-alist
+        `((".*" . ,temporary-file-directory)))
+  (setq auto-save-file-name-transforms
+        `((".*" ,temporary-file-directory t)))
+
+  (setq vc-make-backup-files t)
+
+#+END_SRC
+* try
+Allows you to quickly install a package for testing.
+#+BEGIN_SRC emacs-lisp
+(print "try")
+(use-package try
+  :ensure t)
+#+END_SRC
+
+* which-key
+Shows help when you pause entering a key sequence.
+#+BEGIN_SRC emacs-lisp
+(print "which key")
+(use-package which-key
+  :ensure t
+  :diminish which-key-mode
+  :config
+  (which-key-mode))
+#+END_SRC
+
+* org-mode
+See also http://orgmode.org/orgcard.pdf
+
+Remember: '<s'TAB expands to the source wrapper block, and C-c ' to
+open code edit window.  C-c C-c evaluates entire edit buffer.
+
+#+BEGIN_SRC emacs-lisp
+  (print "org mode")
+    (use-package org-bullets
+      :ensure t
+      :config
+      (add-hook 'org-mode-hook (lambda () (org-bullets-mode))))
+
+    (custom-set-variables
+     '(org-directory "~/Dropbox/orgfiles")
+     '(org-default-notes-file (concat org-directory "/notes.org"))
+     '(org-hide-leading-stars t)
+     '(org-startup-folded (quote overview))
+     '(org-startup-indented t)
+     '(org-export-html-postamble nil))
+
+     (add-hook 'org-mode-hook 'org-indent-mode)
+
+    (setq org-file-apps
+          (append '(
+                    ("\\.pdf\\'" . "evince %s")) org-file-apps ))
+
+    (global-set-key "\C-c a" 'org-agenda)
+
+    (use-package org-ac
+      :ensure t
+      :init
+      (require 'org-ac)
+      (org-ac/config-default))
+
+    (global-set-key (kbd "C-c c") 'org-capture)
+
+    (setq org-agenda-files (list "~/Dropbox/orgfiles/gcal.org"
+                                 "~/Dropbox/orgfiles/index.org"))
+
+    (setq org-capture-templates
+          '(("t" "To Do Item" entry (file+headline "~/Dropbox/orgfiles/index.org" "To Do")
+             "* TODO %?\n%u" :prepend t)
+            ("n" "Note" entry (file+headline "~/Dropbox/orgfiles/index.org" "Note space")
+             "* %?\n%u" :prepend t)))
+#+END_SRC
+
+#+RESULTS:
+| t | To Do Item | entry | (file+headline ~/Dropbox/orgfiles/index.org To Do) | * TODO %? |
+
+Add a template for writing emacs-lisp in babel org files
+#+Begin_SRC emacs-lisp
+  (setq org-src-window-setup 'current-window)
+  (add-to-list 'org-structure-template-alist
+               '("el" "#+BEGIN_SRC emacs-lisp\n?\n#+END_SRC"))
+#+END_SRC
+
+#+RESULTS:
+| el | #+BEGIN_SRC emacs-lisp |
+
+* Ivy/Counsel/Swiper/Smex
+Compare this vs ido/helm
+#+BEGIN_SRC emacs-lisp
+  (print "counsel ivy smex swiper")
+    (use-package ivy
+      :ensure t
+      :diminish (ivy-mode)
+      :bind (("C-x b" . ivy-switch-buffer))
+      :config
+      (ivy-mode 1)
+      (setq ivy-use-virtual-buffers t)
+      (setq ivy-display-style 'fancy)
+      (setq ivy-count-format "%d/%d "))
+
+    (use-package counsel
+      :ensure t
+      :bind
+      (("M-y" . counsel-yank-pop)
+       :map ivy-minibuffer-map
+       ("M-y" . ivy-next-line-and-call)
+       ("C-m" . ivy-alt-done)))
+
+    (use-package swiper
+      :ensure t
+      :bind (("C-s" . swiper)
+             ("C-r" . swiper)
+             ("C-c C-r" . ivy-resume)
+             ("C-x C-f" . counsel-find-file)
+      )
+      :config
+      (define-key read-expression-map (kbd "C-r") 'counsel-expression-history))
+
+  (global-set-key (kbd "C-s") 'swiper)
+  (global-set-key (kbd "M-x") 'counsel-M-x)
+  (global-set-key (kbd "C-x C-f") 'counsel-find-file)
+  (global-set-key (kbd "<f1> f") 'counsel-describe-function)
+  (global-set-key (kbd "<f1> v") 'counsel-describe-variable)
+  (global-set-key (kbd "<f1> l") 'counsel-find-library)
+  (global-set-key (kbd "<f2> i") 'counsel-info-lookup-symbol)
+  (global-set-key (kbd "<f2> u") 'counsel-unicode-char)
+
+  (global-set-key (kbd "C-c g") 'counsel-git)
+  (global-set-key (kbd "C-c j") 'counsel-git-grep)
+  (global-set-key (kbd "C-c k") 'counsel-ag)
+  (global-set-key (kbd "C-x l") 'counsel-locate)
+  (global-set-key (kbd "C-S-o") 'counsel-rhythmbox)
+
+  (global-set-key (kbd "C-c C-r") 'ivy-resume)
+
+  (use-package smex
+    :ensure t
+    :config
+    (smex-initialize))
+
+  (global-set-key (kbd "M-X") 'smex-major-mode-commands)
+  ;; This is your old M-x.
+  (global-set-key (kbd "C-c C-c M-x") 'execute-extended-command)
+
+  (use-package flx
+    :ensure t
+    :config
+    (setq ivy-re-builders-alist '((t . ivy--regex-fuzzy))))
+
+#+END_SRC
+
+* ibuffer
+A better buffer list window.
+#+BEGIN_SRC emacs-lisp
+(print "ibuffer")
+  (use-package ibuffer
+    :ensure t
+    :bind
+    ("C-x C-b" . ibuffer-other-window)
+    :init
+    (setq ibuffer-default-sorting-mode 'major-mode))
+
+  (global-set-key (kbd "C-x C-b") 'ibuffer)
+  (setq ibuffer-saved-filter-groups
+        (quote (("default"
+                 ("dired" (mode . dired-mode))
+                 ("org" (name . "^.*org$"))
+                 ("web" (or (mode . web-mode) (mode . js2-mode)))
+                 ("shell" (or (mode . eshell-mode) (mode . shell-mode)))
+                 ("programming" (or
+                                 (mode . python-mode)
+                                 (mode . clojure-mode)
+                                 (mode . ruby-mode)
+                                 (mode . elixir-mode)
+                                 (mode . clojure-mode)))
+                 ("emacs" (or
+                           (name . "^\\*scratch\\*$")
+                           (name . "^\\*Messages\\*$")))
+                 ))))
+  (add-hook 'ibffer-mode-hook
+            (lambda ()
+              (ibuffer-auto-mode 1)
+              (ibuffer-switch-to-saved-filter-groups "default")))
+  (setq ibuffer-show-empty-filter-groups nil)
+
+  (setq ibuffer-expert t)
+#+END_SRC
+
+ auto-complete
+Compare with company (see below)
+#+BEGIN_SRC emacs-lisp
+  (use-package auto-complete
+    :ensure t
+    :config
+    (add-to-list 'ac-dictionary-directories "~/.emacs.d/ac-dict")
+    :init
+    (ac-config-default)
+    (global-auto-complete-mode t))
+
+#+END_SRC
+
+* Reveal.js
+For presentations (as html). See also
+https://github.com/hakimel/reveal.js and https://github.com/yjwen/org-reveal/
+#+BEGIN_SRC emacs-lisp
+(print "reveal")
+  (use-package ox-reveal
+    :ensure ox-reveal)
+
+  (setq org-reveal-root "http://cdn.jsdelivr.net/reveal.js/3.0.0/")
+
+  (use-package htmlize
+    :ensure t)
+#+END_SRC
+
+* Flycheck
+See flycheck.org - for code syntax checking, has many components for
+different languages.
+#+BEGIN_SRC emacs-lisp
+  (print "flycheck")
+    (use-package flycheck
+      :ensure t
+      :diminish flycheck-mode
+      :config
+      (global-flycheck-mode t)
+      (setq-default flycheck-disabled-checkers '(emacs-lisp-checkdoc)))
+#+END_SRC
+* Python
+For Python,
+http://www.jesshamrick.com/2012/09/18/emacs-as-a-python-ide/ and see
+jedi, elpy, flask, etc
+#+BEGIN_SRC emacs-lisp
+(print "python")
+(setq py-python-command "python3")
+(setq python-shell-interpreter "python3")
+#+END_SRC
+* yasnippet
+https://github.com/joaotavora/yasnippet/
+#+BEGIN_SRC emacs-lisp
+  (print "yas")
+    (use-package yasnippet
+      :ensure t
+      :init
+      (yas-global-mode 1))
+    (use-package yasnippet-snippets
+                :ensure t
+                :config (yas-reload-all))
+#+END_SRC
+
+#+RESULTS:
+
+* undo tree
+C-/ is normal binding for undo.  undo-tree adds Shift-C-/ for redo,
+and C-x u to display the undo tree map.
+#+BEGIN_SRC emacs-lisp
+(print "undo tree")
+  (use-package undo-tree
+    :ensure t
+    :diminish undo-tree-mode
+    :init
+    (global-undo-tree-mode))
+#+END_SRC
+* little stuff
+
+Mostly obvious - iedit assigns to C-; (marks for editing all text
+matching the region; pairs well with expand-region.  See also
+multiple-cursors.  For region only iedit, use with M-x
+narrow-to-region and M-x widen.  See also narrow-or-widen-dwim
+(endless-parentheses?).
+
+#+BEGIN_SRC emacs-lisp
+  (print "little stuff")
+
+  (windmove-default-keybindings)
+
+  (use-package hungry-delete
+    :ensure t
+    :config
+    (global-hungry-delete-mode))
+
+  (use-package expand-region
+    :ensure t
+    :bind
+    ("C-=" . er/expand-region)
+    :config
+    )
+
+  (put 'narrow-to-region 'disabled nil)
+
+  (use-package iedit
+    :ensure t)
+
+  (setq save-interprogram-paste-before-kill t)
+
+  (global-auto-revert-mode 1)
+  (setq auto-revert-verbose nil)
+  (global-set-key (kbd "<F5>") 'revert-buffer)
+#+END_SRC
+
+* web mode
+See web-mode.org
+#+BEGIN_SRC  emacs-lisp
+(print "web mode")
+  (use-package web-mode
+    :ensure t
+    :config
+    (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
+    (setq web-mode-engines-alist
+          '(("django" . "\\.html?\\'")))
+    (setq web-mode-ac-sources-alist
+          '(("css" . (ac-source-css-property))
+            ("html" . (ac-source-words-in-buffer ac-source-abbrev))))
+    (setq web-mode-enable-auto-closing t)
+    (setq web-mode-enable-auto-quoting t))
+
+
+#+END_SRC
+
+#+RESULTS:
+: t
+
+* projectile
+Treats directory trees as projects.
+#+BEGIN_SRC emacs-lisp
+(print "projectile")
+  (use-package projectile
+    :ensure t
+    :config
+    (projectile-global-mode)
+    (setq projectile-completion-system 'ivy))
+
+  (use-package counsel-projectile
+    :ensure t
+    :config
+    (counsel-projectile-on))
+
+
+#+END_SRC
+
+#+RESULTS:
+: t
+
+* dumb-jump
+Similar to tags
+#+BEGIN_SRC emacs-lisp
+(print "dumb jump")
+  (use-package dumb-jump
+    :ensure t
+    :config
+    (setq dumb-jump-selector 'ivy)
+    :bind
+    (("M-g o" . dumb-jump-go-other-window)
+     ("M-g j" . dumb-jump-go)
+     ("M-g x" . dumb-jump-go-refer-external)
+     ("M-g z" . dump-jump-go-prefer-external-other-window)))
+
+#+END_SRC
+
+#+RESULTS:
+
+* treemacs
+[[http://github.com/Alexander-Miller/treemacs][File browser]]
+#+BEGIN_SRC emacs-lisp
+  (print "treemacs")
+  (use-package treemacs
+    :ensure t
+    :defer t
+    :config
+    (progn
+      (setq treemacs-follow-after-init          t
+            treemacs-width                      35
+            treemacs-indentation                2
+            treemacs-git-integration            t
+            treemacs-collapse-dirs              3
+            treemacs-silent-refresh             nil
+            treemacs-change-root-without-asking nil
+            treemacs-sorting                    'alphabetic-desc
+            treemacs-show-hidden-files          t
+            treemacs-never-persist              nil
+            treemacs-is-never-other-window      nil
+            treemacs-goto-tag-strategy          'refetch-index)
+
+      (treemacs-follow-mode t)
+      (treemacs-filewatch-mode t))
+    :bind
+    (:map global-map
+          ([f8]         . treemacs-toggle)
+          ([f9]         . treemacs-projectile-toggle)
+          ("M-0"        . treemacs-select-window)
+          ("C-c 1"      . treemacs-delete-other-windows)))
+  (use-package treemacs-projectile
+    :defer t
+    :ensure t
+    :config
+    (setq treemacs-header-function #'treemacs-projectile-create-header))
+
+
+#+END_SRC
+
+#+RESULTS:
+
+* Not sure where this came from
+#+BEGIN_SRC emacs-lisp
+(print "not sure")
+(auto-compression-mode 1)
+
+(setq mouse-wheel-scroll-amount '(1 ((shift . 1) ((control) . nil))))
+(setq mouse-wheel-progressive-speed nil)
+#+END_SRC
+* endless parentheses
+#+BEGIN_SRC emacs-lisp
+  ;; fill or unfill paragraphs
+  (defun endless/fill-or-unfill ()
+    "Like 'fill-paragraph', but unfill if used twice."
+    (interactive)
+    (let ((fill-column
+           (if (eq last-command 'endless/fill-or-unfill)
+               (progn (setq this-command nil)
+                      (point-max))
+             fill-column)))
+      (call-interactively #'fill-paragraph)))
+
+  (global-set-key [remap fill-paragraph]
+                  #'endless/fill-or-unfill)
+#+END_SRC
+* Mastering Emacs snippets
+helm, ido, sudo, etc
+#+BEGIN_SRC emacs-lisp
+(print "mastering emacs")
+  (setq apropos-sort-by-scores t)
+
+  (global-set-key (kbd "M-i") 'imenu)
+
+  (global-set-key [remap dabbrev-expand] 'hippie-expand)
+
+  (global-set-key (kbd "<RET>") 'newline-and-indent)
+
+(print "sudo")
+  (defun sudo()
+    "Use TRAMP to `sudo` the current buffer"
+    (interactive)
+    (when buffer-file-name
+      (find-alternate-file
+       (concat "/sudo:root@localhost:" buffer-file-name))))
+
+(print "dired-x")
+  (require 'dired-x)
+#+END_SRC
+
+* My stuff
+for paredit, rainbow-delimiters, company, fci
+what happened to clojure/cider?
+
+#+BEGIN_SRC emacs-lisp
+(print "my stuff")
+  (use-package rainbow-delimiters
+    :ensure t
+    :init (rainbow-delimiters-mode 1)
+    :config
+    (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
+
+  (print "paredit")
+
+    (use-package paredit
+      :ensure t
+      :config
+      (autoload 'enable-paredit-mode "paredit"
+        "Turn on pseudo-structural editing of Lisp code." t)
+      (add-hook 'emacs-lisp-mode-hook 'enable-paredit-mode)
+      (add-hook 'lisp-mode-hook 'enable-paredit-mode)
+      (add-hook 'lisp-interaction-mode-hook 'enable-paredit-mode)
+      (add-hook 'scheme-mode-hook 'enable-paredit-mode)
+      (add-hook 'clojure-mode-hook #'paredit-mode))
+
+;;(print "fci")
+  ;; fill-column
+;;  (use-package fill-column-indicator
+;;    :ensure t
+;;    :config
+;;    (define-globalized-minor-mode
+;;      global-fci-mode fci-mode
+;;      (lambda () (fci-mode 1)))
+;;    (global-fci-mode t))
+
+(print "company")
+    ;; Company
+    (use-package company
+      :ensure t
+      :diminish company-mode
+      :init
+      :config
+      (company-mode)
+      (add-hook 'after-init-hook 'global-company-mode)
+      (setq company-idle-delay 0)
+      (setq company-minimum-prefix-length 3))
+
+#+End_SRC
+* GNU Smalltalk?
+#+BEGIN_SRC emacs-lisp
+  ;;(when (file-exists-p "~/.emacs.d/site-lisp")
+  ;;      (add-to-list 'load-path "~/.emacs.d/site-lisp"))
+  ;;(progn (cd "~/.emacs.d/site-lisp")
+  ;;       (normal-top-level-add-subdirs-to-load-path))
+
+  ;;(load "smalltalk-mode-init.el")
+  ;; ;; (require 'smalltalk-mode-init.el)
+  ;;(require 'smalltalk-mode)
+  ;;(require 'gst-mode)
+#+END_SRC
+* Poet Mode
+A pretty mode for editing text.
+#+BEGIN_SRC emacs-lisp
+  (print "poet")
+  (use-package poet-theme :ensure t)
+  (add-hook 'text-mode-hook
+            (lambda ()
+              (variable-pitch-mode 1)))
+  (set-face-attribute 'default nil :family "Iosevka" :height 130)
+  (set-face-attribute 'fixed-pitch nil :family "Iosevka")
+  (set-face-attribute 'variable-pitch nil :family "Baskerville")
+
+  (use-package olivetti :ensure t)
+  (olivetti-mode 1)
+
+  (flyspell-mode 1)
+
+  (use-package typo :ensure t)
+  ;; (typo-mode 1)
+  (typo-global-mode 1)
+  (add-hook 'text-mode-hook 'typo-mode)
+
+  (linum-mode 0)
+#+END_SRC
+* Magit
+
+#+BEGIN_SRC emacs-lisp
+ ;; (print "Magit")
+ ;; (use-package magit
+ ;;     :bind (("C-M-g" . magit-status)))
+#+END_SRC
